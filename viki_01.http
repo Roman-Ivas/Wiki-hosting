@@ -1,0 +1,6 @@
+@viki_01_HostAddress = http://localhost:5027
+
+GET {{viki_01_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
