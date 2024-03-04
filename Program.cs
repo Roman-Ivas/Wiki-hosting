@@ -36,6 +36,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddTransient<ITopicRepository, DatabaseTopicRepository>();
 builder.Services.AddTransient<IPageRepository, DatabasePageRepository>();
 builder.Services.AddTransient<IContributorRepository, DatabaseContributorRepository>();
+builder.Services.AddTransient<IWikiRepository, DatabaseWikiRepository>();
+builder.Services.AddTransient<IReportRepository, DatabaseReportRepository>();
 builder.Services.AddScoped<IAuthService, SqlDbAuthService>();
 builder.Services.AddKeyedSingleton(ServiceKeys.LoggerSerializerOptions,
     new JsonSerializerOptions
@@ -53,11 +55,13 @@ builder.Services.AddAuthorization(
     {
         options.AddPolicy(name: "AdminOnly", policy => policy.RequireRole("Admin"));
         options.AddPolicy(name: "ModerationOnly", policy => policy.RequireRole("Admin", "Moderator"));
-        options.AddPolicy(name: "PageUpsert", policy => policy.Requirements.Add(new OperationAuthorizationRequirement { Name = "PageUpsert"}));
+        options.AddPolicy(name: "PageUpsert", policy => policy.Requirements.Add(new OperationAuthorizationRequirement { Name = "PageUpsert" }));
+        options.AddPolicy(name: "WikiOwner", policy => policy.Requirements.Add(new OperationAuthorizationRequirement { Name = "WikiOwner" }));
     });
 
 builder.Services.AddSingleton<IUserIdProvider, SignalrEmailBasedUserIdProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PageAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, WikiOwnerAuthorizationHandler>();
 
 builder.Services.AddControllers();
 builder.Services.AddHostedService<TokenCleanerService>();
@@ -71,7 +75,9 @@ builder.Services.AddMappers(mapperBuilder =>
     mapperBuilder.AddMapper<TopicToTopicDtoMapper>()
         .AddMapper<TopicToTopicUpsertDtoMapper>()
         .AddMapper<PageToPageDtoMapper>()
-        .AddMapper<PageToPageUpsertDtoMapper>();
+        .AddMapper<PageToPageUpsertDtoMapper>()
+        .AddMapper<WikiToWikiDtoMapper>()
+        .AddMapper<ReportToReportDtoMapper>();
 });
 
 var app = builder.Build();
