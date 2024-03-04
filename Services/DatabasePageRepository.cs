@@ -7,6 +7,13 @@ namespace viki_01.Services;
 
 public class DatabasePageRepository(WikiHostingSqlServerContext context, IMapper<Page, PageDto> pageMapper) : IPageRepository
 {
+    public async Task<ICollection<Page>> GetAllAsync(int wikiId)
+    {
+        return await context.Pages
+            .Where(page => page.WikiId == wikiId)
+            .ToListAsync();
+    }
+    
     public Task<Page?> GetAsync(int id)
     {
         return context.Pages.FirstOrDefaultAsync(page => page.Id == id);
