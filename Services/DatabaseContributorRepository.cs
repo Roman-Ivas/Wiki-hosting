@@ -20,7 +20,7 @@ public class DatabaseContributorRepository(WikiHostingSqlServerContext context) 
 
     public Task<Contributor?> GetContributor(int wikiId, int userId)
     {
-        var contributor = context.Contributors.Where(contributor => contributor.WikiId == wikiId && contributor.UserId == userId);
+        var contributor = context.Contributors.Where(contributor => contributor.WikiId == wikiId && contributor.UserId == userId).Include(contributor => contributor.ContributorRole);
         return contributor.FirstOrDefaultAsync();
     }
 
