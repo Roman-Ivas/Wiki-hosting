@@ -1,9 +1,9 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using viki_01.Dto;
 using viki_01.Entities;
 using viki_01.Extensions;
+using viki_01.Models.Dto;
 using viki_01.Services;
 using viki_01.Utils;
 
