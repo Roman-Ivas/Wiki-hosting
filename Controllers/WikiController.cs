@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using viki_01.Dto;
 using viki_01.Entities;
 using viki_01.Extensions;
+using viki_01.Models.Dto;
 using viki_01.Services;
 
 namespace viki_01.Controllers;
@@ -153,4 +153,73 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
         logger.LogActionInformation(HttpMethods.Delete, nameof(DeleteWiki), "Succesfully deleted wiki with ID: {id}", id);
         return NoContent();
     }
+    
+    [HttpGet("{id:int}/contributors")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetWikiContributors([FromRoute] int id, [FromServices] IContributorRepository contributorRepository)
+    {
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetWikiContributors), "Called with ID: {id}", id);
+        var wiki = await wikiRepository.GetAsync(id);
+        if (wiki is null)
+        {
+            logger.LogActionWarning(HttpMethods.Get, nameof(GetWikiContributors), "Wiki with ID {id} not found", id);
+            return NotFound();
+        }
+        
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetWikiContributors), "Wiki with ID {id} found and succesfully returned", id);
+        return Ok(await contributorRepository.GetWikiContributors(id));
+    }
+    
+    [HttpPost("{id:int}/contributors/{userId}")]
+    [Authorize("WikiOwner")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> AddWikiContributor([FromRoute] int id, [FromRoute] int userId, [FromBody] ContributorUpsertDto contributorUpsertDto, [FromServices] IContributorRepository contributorRepository)
+    {
+        logger.LogActionInformation(HttpMethods.Post, nameof(AddWikiContributor), "Called with ID: {id}", id);
+        var wiki = await wikiRepository.GetAsync(id);
+        if (wiki is null)
+        {
+            logger.LogActionWarning(HttpMethods.Post, nameof(AddWikiContributor), "Wiki with ID {id} not found", id);
+            return NotFound();
+        }
+        
+        await contributorRepository.AddAsync(new Contributor
+        {
+            UserId = userId,
+            WikiId = id,
+            ContributorRoleId = contributorUpsertDto.ContributorRoleId
+        });
+        
+        logger.LogActionInformation(HttpMethods.Post, nameof(AddWikiContributor), "Succesfully added contributor with ID: {userId} to wiki with ID: {id}", userId, id);
+        return NoContent();
+    }
+    
+    [HttpDelete("{id:int}/contributors/{userId}")]
+    [Authorize("WikiOwner")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RemoveWikiContributor([FromRoute] int id, [FromRoute] int userId, [FromServices] IContributorRepository contributorRepository)
+    {
+        logger.LogActionInformation(HttpMethods.Delete, nameof(RemoveWikiContributor), "Called with ID: {id}", id);
+        var wiki = await wikiRepository.GetAsync(id);
+        if (wiki is null)
+        {
+            logger.LogActionWarning(HttpMethods.Delete, nameof(RemoveWikiContributor), "Wiki with ID {id} not found", id);
+            return NotFound();
+        }
+
+        var contributor = await contributorRepository.GetContributor(id, userId);
+        if (contributor is null)
+        {
+            logger.LogActionWarning(HttpMethods.Delete, nameof(RemoveWikiContributor), "Contributor with ID {userId} not found in wiki with ID: {id}", userId, id);
+            return NotFound();
+        }
+        
+        await contributorRepository.DeleteAsync(contributor.Id);
+        logger.LogActionInformation(HttpMethods.Delete, nameof(RemoveWikiContributor), "Succesfully removed contributor with ID: {userId} from wiki with ID: {id}", userId, id);
+        return NoContent();
+    }
+    
 }
