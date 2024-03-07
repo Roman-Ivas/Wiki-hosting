@@ -1,7 +1,7 @@
-﻿using viki_01.Dto;
-using viki_01.Entities;
+﻿using viki_01.Entities;
+using viki_01.Models.Dto;
 
-namespace viki_01.Services;
+namespace viki_01.Services.Mappers;
 
 public class PageToPageDtoMapper : IMapper<Page, PageDto>
 {

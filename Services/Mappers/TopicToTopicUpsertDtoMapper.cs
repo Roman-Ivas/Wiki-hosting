@@ -1,24 +1,22 @@
-﻿using viki_01.Dto;
-using viki_01.Entities;
+﻿using viki_01.Entities;
+using viki_01.Models.Dto;
 
-namespace viki_01.Services;
+namespace viki_01.Services.Mappers;
 
-public class TopicToTopicDtoMapper : IMapper<Topic, TopicDto>
+public class TopicToTopicUpsertDtoMapper : IMapper<Topic, TopicUpsertDto>
 {
-    public TopicDto Map(Topic source)
+    public TopicUpsertDto Map(Topic source)
     {
-        return new TopicDto
+        return new TopicUpsertDto
         {
-            Id = source.Id,
             Name = source.Name
         };
     }
 
-    public Topic Map(TopicDto destination)
+    public Topic Map(TopicUpsertDto destination)
     {
         return new Topic
         {
-            Id = destination.Id,
             Name = destination.Name
         };
     }
