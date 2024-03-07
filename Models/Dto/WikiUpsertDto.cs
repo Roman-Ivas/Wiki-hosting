@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace viki_01.Dto;
+namespace viki_01.Models.Dto;
 
 public class WikiUpsertDto
 {
