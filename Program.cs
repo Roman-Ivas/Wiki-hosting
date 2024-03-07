@@ -10,6 +10,7 @@ using viki_01.Authorization;
 using viki_01.Contexts;
 using viki_01.Extensions;
 using viki_01.Services;
+using viki_01.Services.Mappers;
 using viki_01.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -63,7 +64,13 @@ builder.Services.AddSingleton<IUserIdProvider, SignalrEmailBasedUserIdProvider>(
 builder.Services.AddScoped<IAuthorizationHandler, PageAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, WikiOwnerAuthorizationHandler>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions((jsonBuilder) =>
+    {
+        jsonBuilder.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        jsonBuilder.JsonSerializerOptions.WriteIndented = false;
+        jsonBuilder.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 builder.Services.AddHostedService<TokenCleanerService>();
 
 //builder.Services.AddControllers();
