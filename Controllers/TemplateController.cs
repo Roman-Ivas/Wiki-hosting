@@ -1,11 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Linq;
 using System.Threading.Tasks;
 using viki_01.Contexts;
 using viki_01.Entities;
+using viki_01.Models;
+using viki_01.Models.Dto;
 
 namespace viki_01.Controllers
 {
@@ -68,9 +69,20 @@ namespace viki_01.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateTemplate(Template template)
+        public async Task<IActionResult> CreateTemplate(TemplateDto templateDto)
         {
-            _logger.LogInformation("CreateTemplate called with template: {@template}", template);
+            _logger.LogInformation("CreateTemplate called with template: {@templateDto}", templateDto);
+
+            var template = new Template
+            {
+                Name = templateDto.Name,
+                AuthorId = templateDto.AuthorId,
+                Html = templateDto.Html,
+                Css = templateDto.Css,
+                Js = templateDto.Js,
+                Variables = templateDto.Variables,
+                IsPublic = templateDto.IsPublic
+            };
 
             _context.Templates.Add(template);
             await _context.SaveChangesAsync();
@@ -80,15 +92,9 @@ namespace viki_01.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateTemplate(int id, Template updateTemplate)
+        public async Task<IActionResult> UpdateTemplate(int id, TemplateDto updateTemplateDto)
         {
-            _logger.LogInformation("UpdateTemplate called with ID: {id} and updated template: {@updateTemplate}", id, updateTemplate);
-
-            if (id != updateTemplate.Id)
-            {
-                _logger.LogWarning("Invalid ID provided in the request");
-                return BadRequest();
-            }
+            _logger.LogInformation("UpdateTemplate called with ID: {id} and updated template: {@updateTemplateDto}", id, updateTemplateDto);
 
             var existingTemplate = await _context.Templates.FindAsync(id);
             if (existingTemplate == null)
@@ -97,13 +103,13 @@ namespace viki_01.Controllers
                 return NotFound();
             }
 
-            existingTemplate.Name = updateTemplate.Name;
-            existingTemplate.AuthorId = updateTemplate.AuthorId;
-            existingTemplate.Html = updateTemplate.Html;
-            existingTemplate.Css = updateTemplate.Css;
-            existingTemplate.Js = updateTemplate.Js;
-            existingTemplate.Variables = updateTemplate.Variables;
-            existingTemplate.IsPublic = updateTemplate.IsPublic;
+            existingTemplate.Name = updateTemplateDto.Name;
+            existingTemplate.AuthorId = updateTemplateDto.AuthorId;
+            existingTemplate.Html = updateTemplateDto.Html;
+            existingTemplate.Css = updateTemplateDto.Css;
+            existingTemplate.Js = updateTemplateDto.Js;
+            existingTemplate.Variables = updateTemplateDto.Variables;
+            existingTemplate.IsPublic = updateTemplateDto.IsPublic;
 
             await _context.SaveChangesAsync();
 

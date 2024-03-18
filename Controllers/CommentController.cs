@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using viki_01.Contexts;
 using viki_01.Entities;
+using viki_01.Models.Dto;
 
 namespace viki_01.Controllers
 {
@@ -22,8 +22,6 @@ namespace viki_01.Controllers
         }
 
         [HttpGet("{id:int}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetComment([FromRoute] int id)
         {
             _logger.LogInformation("GetComment called with ID: {id}", id);
@@ -42,9 +40,9 @@ namespace viki_01.Controllers
         [HttpPost("{articleId:int}")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> CreateComment([FromRoute] int articleId, [FromBody] Comment comment)
+        public async Task<IActionResult> CreateComment([FromRoute] int articleId, [FromBody] CommentDto commentDto)
         {
-            _logger.LogInformation("CreateComment called with article ID: {articleId} and comment: {@comment}", articleId, comment);
+            _logger.LogInformation("CreateComment called with article ID: {articleId} and comment: {@commentDto}", articleId, commentDto);
 
             if (!ModelState.IsValid)
             {
@@ -52,9 +50,14 @@ namespace viki_01.Controllers
                 return BadRequest(ModelState);
             }
 
-            comment.PageId = articleId;
-            comment.PostedAt = DateTime.Now;
-            comment.EditedAt = DateTime.Now;
+            var comment = new Comment
+            {
+                PageId = articleId,
+                AuthorId = commentDto.AuthorId,
+                Text = commentDto.Text,
+                PostedAt = DateTime.Now,
+                EditedAt = DateTime.Now
+            };
 
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();

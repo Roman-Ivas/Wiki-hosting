@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using viki_01.Contexts;
 using viki_01.Entities;
+using viki_01.Models.Dto;
 
 namespace viki_01.Controllers
 {
@@ -42,9 +43,17 @@ namespace viki_01.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateTheme(Theme theme)
+        public async Task<IActionResult> CreateTheme(ThemeDto themeDto)
         {
-            _logger.LogInformation("CreateTheme called with theme: {@theme}", theme);
+            _logger.LogInformation("CreateTheme called with theme: {@themeDto}", themeDto);
+
+            var theme = new Theme
+            {
+                Name = themeDto.Name,
+                AuthorId = themeDto.AuthorId,
+                Css = themeDto.Css,
+                IsPublic = themeDto.IsPublic
+            };
 
             _context.Themes.Add(theme);
             await _context.SaveChangesAsync();
@@ -54,15 +63,9 @@ namespace viki_01.Controllers
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateTheme(int id, Theme updateTheme)
+        public async Task<IActionResult> UpdateTheme(int id, ThemeDto updateThemeDto)
         {
-            _logger.LogInformation("UpdateTheme called with ID: {id} and updated theme: {@updateTheme}", id, updateTheme);
-
-            if (id != updateTheme.Id)
-            {
-                _logger.LogWarning("Invalid ID provided in the request");
-                return BadRequest();
-            }
+            _logger.LogInformation("UpdateTheme called with ID: {id} and updated theme: {@updateThemeDto}", id, updateThemeDto);
 
             var existingTheme = await _context.Themes.FindAsync(id);
             if (existingTheme == null)
@@ -71,10 +74,10 @@ namespace viki_01.Controllers
                 return NotFound();
             }
 
-            existingTheme.Name = updateTheme.Name;
-            existingTheme.AuthorId = updateTheme.AuthorId;
-            existingTheme.Css = updateTheme.Css;
-            existingTheme.IsPublic = updateTheme.IsPublic;
+            existingTheme.Name = updateThemeDto.Name;
+            existingTheme.AuthorId = updateThemeDto.AuthorId;
+            existingTheme.Css = updateThemeDto.Css;
+            existingTheme.IsPublic = updateThemeDto.IsPublic;
 
             await _context.SaveChangesAsync();
 
