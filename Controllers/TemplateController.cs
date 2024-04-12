@@ -22,24 +22,12 @@ namespace viki_01.Controllers
             _context = context;
             _logger = logger;
         }
-
-        [HttpGet("{id:int?}")]
-        public async Task<IActionResult> GetTemplate(int? id, [FromQuery] string search)
+        [HttpGet]
+        public async Task<IActionResult> GetTemplates([FromQuery] string? search = null)
         {
-            _logger.LogInformation("GetTemplate called with ID: {id}", id);
+            _logger.LogInformation("GetTemplates called");
 
             IQueryable<Template> templates = _context.Templates;
-
-            if (id.HasValue)
-            {
-                var template = await templates.FirstOrDefaultAsync(t => t.Id == id);
-                if (template == null)
-                {
-                    _logger.LogWarning("Template with ID {id} not found", id);
-                    return NotFound();
-                }
-                return Ok(template);
-            }
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -88,7 +76,7 @@ namespace viki_01.Controllers
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Template created successfully with ID: {id}", template.Id);
-            return CreatedAtAction(nameof(GetTemplate), new { id = template.Id }, template);
+            return CreatedAtAction(nameof(GetTemplates), new { id = template.Id }, template);
         }
 
         [HttpPut("{id:int}")]
