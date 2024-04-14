@@ -157,7 +157,7 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
     [HttpGet("{id:int}/contributors")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetWikiContributors([FromRoute] int id, [FromServices] IContributorRepository contributorRepository)
+    public async Task<IActionResult> GetWikiContributors([FromRoute] int id, [FromQuery] string? role, [FromServices] IContributorRepository contributorRepository)
     {
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWikiContributors), "Called with ID: {id}", id);
         var wiki = await wikiRepository.GetAsync(id);
@@ -168,7 +168,7 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
         }
         
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWikiContributors), "Wiki with ID {id} found and succesfully returned", id);
-        return Ok(await contributorRepository.GetWikiContributors(id));
+        return Ok(await contributorRepository.GetWikiContributors(id, role));
     }
     
     [HttpPost("{id:int}/contributors/{userId}")]

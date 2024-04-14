@@ -12,9 +12,11 @@ public class DatabaseContributorRepository(WikiHostingSqlServerContext context) 
         return contributors;
     }
 
-    public async Task<ICollection<Contributor>> GetWikiContributors(int wikiId)
+    public async Task<ICollection<Contributor>> GetWikiContributors(int wikiId, string? role = null)
     {
-        var contributors = context.Contributors.Where(contributor => contributor.WikiId == wikiId);
+        var contributors = context.Contributors.Where(contributor => contributor.WikiId == wikiId && (string.IsNullOrWhiteSpace(role) ||
+            string.Equals(contributor.ContributorRole.Name.ToUpper(),
+                role.ToUpper()))).Include(contributor => contributor.ContributorRole);
         return await contributors.ToListAsync();
     }
 

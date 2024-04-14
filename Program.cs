@@ -84,7 +84,8 @@ builder.Services.AddMappers(mapperBuilder =>
         .AddMapper<PageToPageDtoMapper>()
         .AddMapper<PageToPageUpsertDtoMapper>()
         .AddMapper<WikiToWikiDtoMapper>()
-        .AddMapper<ReportToReportDtoMapper>();
+        .AddMapper<ReportToReportDtoMapper>()
+        .AddMapper<UserToAuthorDtoMapper>();
 });
 
 var app = builder.Build();
