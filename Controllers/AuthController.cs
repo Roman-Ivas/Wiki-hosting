@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using viki_01.Contexts;
 using viki_01.Entities;
+using viki_01.Extensions;
+using viki_01.Models.Dto;
 using viki_01.Services;
 
 namespace viki_01.Controllers
@@ -15,6 +19,84 @@ namespace viki_01.Controllers
         public AuthController(IAuthService authService)
         {
             this.authService = authService;
+        }
+        
+        [HttpGet("profile/{userId:int?}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> Profile([FromServices] WikiHostingSqlServerContext context, [FromRoute] int? userId, [FromQuery] int relatedContentLoadLimit = 20)
+        {
+            if (userId.HasValue)
+            {
+                var userProfile = await context.Users
+                    .Where(u => u.Id == userId)
+                    .Select(u =>
+                        new UserProfileDto
+                        {
+                            Id = u.Id,
+                            UserName = u.UserName!,
+                            AvatarPath = u.AvatarPath,
+                            Comments = u.Comments.Take(relatedContentLoadLimit),
+                            Contributions = u.Contributions.Take(relatedContentLoadLimit),
+                            CreatedPages = u.CreatedPages.Take(relatedContentLoadLimit),
+                            CreatedRatings = u.CreatedRatings.Take(relatedContentLoadLimit),
+                            CreatedReports = u.CreatedReports.Take(relatedContentLoadLimit),
+                            CreatedTemplates = u.CreatedTemplates.Take(relatedContentLoadLimit),
+                            CreatedThemes = u.CreatedThemes.Take(relatedContentLoadLimit),
+                            Feedbacks = u.Feedbacks.Take(relatedContentLoadLimit),
+                            InterestedTopics = u.InterestedTopics.Take(relatedContentLoadLimit),
+                            Subscription = u.Subscription.Subscription,
+                            LockoutEnabled = u.LockoutEnabled
+                        }
+                    )
+                    .FirstOrDefaultAsync();
+                
+                if (userProfile is null)
+                {
+                    return NotFound();
+                }
+                
+                return Ok(userProfile);
+            }
+
+            try
+            {
+                var userOwnProfile = await context.Users
+                    .Where(u => u.Id == HttpContext.User.GetId())
+                    .Select(u => new
+                    {
+                        Id = u.Id,
+                        UserName = u.UserName!,
+                        Email = u.Email!,
+                        Password = u.Password,
+                        PhoneNumber = u.PhoneNumber,
+                        AvatarPath = u.AvatarPath,
+                        Preference = u.Preference,
+                        Comments = u.Comments.Take(relatedContentLoadLimit),
+                        Contributions = u.Contributions.Take(relatedContentLoadLimit),
+                        CreatedPages = u.CreatedPages.Take(relatedContentLoadLimit),
+                        CreatedRatings = u.CreatedRatings.Take(relatedContentLoadLimit),
+                        CreatedReports = u.CreatedReports.Take(relatedContentLoadLimit),
+                        CreatedTemplates = u.CreatedTemplates.Take(relatedContentLoadLimit),
+                        CreatedThemes = u.CreatedThemes.Take(relatedContentLoadLimit),
+                        Feedbacks = u.Feedbacks.Take(relatedContentLoadLimit),
+                        InterestedTopics = u.InterestedTopics.Take(relatedContentLoadLimit),
+                        Subscription = u.Subscription.Subscription,
+                        LockoutEnabled = u.LockoutEnabled
+                    })
+                    .FirstOrDefaultAsync();
+                
+                if (userOwnProfile is null)
+                {
+                    return NotFound();
+                }
+                
+                return Ok(userOwnProfile);
+            }
+            catch (Exception)
+            {
+                return Unauthorized();
+            }
         }
 
         /// <summary>
