@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using viki_01.Authorization;
 using viki_01.Entities;
 using viki_01.Extensions;
 using viki_01.Models.Dto;
@@ -114,6 +113,8 @@ public class PageController(
         var page = mapper.Map(pageUpsertDto);
         page.WikiId = wikiId;
         page.AuthorId = HttpContext.User.GetId();
+        page.RawHtml = page.RawHtml ?? string.Empty;
+        page.ProcessedHtml = page.ProcessedHtml ?? string.Empty;
 
         await pageRepository.AddAsync(page);
         logger.LogActionInformation(HttpMethods.Post,
