@@ -15,10 +15,5 @@ namespace viki_01.Entities
         public int Id { get; set; }
         [StringLength(512, MinimumLength = 1)]
         public string Path { get; set; } = null!;
-        [StringLength(256, MinimumLength = 1)]
-        public string FileName { get; set; } = null!;
-
-        public int PageId { get; set; }
-        public Page Page { get; set; } = null!;
     }
 }
