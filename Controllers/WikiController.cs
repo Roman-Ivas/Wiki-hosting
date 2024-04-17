@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using viki_01.Entities;
 using viki_01.Extensions;
 using viki_01.Models.Dto;
@@ -15,18 +16,10 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
     
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetWikis([FromServices] IMapper<Wiki, WikiDto> mapper, [FromQuery] string? search = null)
+    public async Task<IActionResult> GetWikis([FromServices] IMapper<Wiki, WikiDto> mapper, [FromQuery] string? search = null, [FromQuery] string? topic = null)
     {
-        logger.LogActionInformation(HttpMethods.Get, nameof(GetWikis), "Called with search: {search}", search ?? "null");
-        ICollection<Wiki> wikis;
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            wikis = await wikiRepository.GetAllAsync(search);
-        }
-        else
-        {
-            wikis = await wikiRepository.GetAllAsync(search);
-        }
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetWikis), "Called with search: {search} and topic: {topic}", search ?? "null", topic ?? "null");
+        var wikis = await wikiRepository.GetAllAsync(search, topic);
         
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWikis), "Wikis found and succesfully returned");
         return Ok(mapper.Map(wikis));
@@ -35,7 +28,7 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetWiki([FromRoute] int id, [FromServices] IMapper<Wiki, WikiDto> mapper)
+    public async Task<IActionResult> GetWiki([FromRoute] int id, [FromServices] IMapper<Wiki, WikiDto> mapper, [FromServices] IHubContext<NotificationHub> notificationHub)
     {
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWiki), "Called with ID: {id}", id);
         var wiki = await wikiRepository.GetAsync(id);
