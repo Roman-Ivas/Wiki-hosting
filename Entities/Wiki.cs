@@ -13,6 +13,10 @@ namespace viki_01.Entities
         public string Name { get; set; } = null!;
         public bool IsArchived { get; set; }
 
+        [StringLength(512, MinimumLength = 1)]
+        public string BackgroundImagePath { get; set; } = null!;
+
+        public IList<Link> MainLinks { get; set; } = new List<Link>();
         public IList<Topic> Topics { get; set; } = new List<Topic>();
         public IList<Page> Pages { get; set; } = new List<Page>();
         public IList<Contributor> Contributors { get; set; } = new List<Contributor>();

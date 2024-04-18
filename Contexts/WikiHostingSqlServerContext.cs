@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using System;
 
 
+
 namespace viki_01.Contexts
 {
     [SuppressMessage("ReSharper", "PropertyCanBeMadeInitOnly.Global")]
@@ -36,7 +37,8 @@ namespace viki_01.Contexts
         public DbSet<UserPreference> UserPreferences { get; set; } = null!;
         public DbSet<UserSubscription> UserSubscriptions { get; set; } = null!;
         public DbSet<Wiki> Wikis { get; set; } = null!;
-
+        public DbSet<Link> Links { get; set; } = null!;
+        
         public WikiHostingSqlServerContext(DbContextOptions<WikiHostingSqlServerContext> options) :base(options)
         {
             //Database.Migrate();
@@ -178,21 +180,9 @@ namespace viki_01.Contexts
             builder.Entity<MediaContent>(entity =>
             {
                 entity.HasKey(mediaContent => mediaContent.Id);
-
-                entity.HasIndex(mediaContent => mediaContent.PageId);
-
-                entity.HasOne(mediaContent => mediaContent.Page)
-                    .WithMany(page => page.MediaContents)
-                    .HasForeignKey(mediaContent => mediaContent.PageId)
-                    .OnDelete(DeleteBehavior.Restrict); // first need to manually (programmaticaly) delete all media content (files) from their sources, and only then delete it from the database
-
+                
                 entity.Property(mediaContent => mediaContent.Path)
                     .HasMaxLength(512)
-                    .IsUnicode(false)
-                    .IsRequired();
-
-                entity.Property(mediaContent => mediaContent.FileName)
-                    .HasMaxLength(256)
                     .IsUnicode(false)
                     .IsRequired();
 
@@ -202,9 +192,6 @@ namespace viki_01.Contexts
                         tableBuilder.HasCheckConstraint(
                             $"CK_{nameof(MediaContents)}_{nameof(MediaContent.Path)}",
                             $"[{nameof(MediaContent.Path)}] != ''");
-                        tableBuilder.HasCheckConstraint(
-                            $"CK_{nameof(MediaContents)}_{nameof(MediaContent.FileName)}",
-                            $"[{nameof(MediaContent.FileName)}] != ''");
                     });
             });
 
@@ -222,11 +209,6 @@ namespace viki_01.Contexts
                 entity.HasOne(page => page.Author)
                     .WithMany(author => author.CreatedPages)
                     .HasForeignKey(page => page.AuthorId)
-                    .OnDelete(DeleteBehavior.Restrict);
-
-                entity.HasMany(page => page.MediaContents)
-                    .WithOne(mediaContent => mediaContent.Page)
-                    .HasForeignKey(mediaContent => mediaContent.PageId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasMany(page => page.UserRatings)
@@ -524,11 +506,41 @@ namespace viki_01.Contexts
                     .WithOne(contributor => contributor.Wiki)
                     .HasForeignKey(contributor => contributor.WikiId)
                     .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasMany(wiki => wiki.MainLinks)
+                    .WithOne(link => link.Wiki)
+                    .HasForeignKey(link => link.WikiId)
+                    .OnDelete(DeleteBehavior.Cascade);
 
                 entity.ToTable(nameof(Wikis), tableBuilder =>
                 {
                     tableBuilder.HasCheckConstraint($"CK_{nameof(Wikis)}_{nameof(Wiki.Name)}", $"[{nameof(Wiki.Name)}] != ''");
                 });
+            });
+
+            builder.Entity<Link>(entity =>
+            {
+                entity.HasKey(link => link.Id);
+
+                entity.HasIndex(link => link.Url);
+                entity.HasIndex(link => link.Title);
+                
+                entity.Property(link => link.Url)
+                    .HasMaxLength(512)
+                    .IsUnicode(false)
+                    .IsRequired();
+                
+                entity.Property(link => link.Title)
+                    .HasMaxLength(128)
+                    .IsUnicode()
+                    .IsRequired();
+
+                entity.HasOne(link => link.Wiki)
+                    .WithMany(wiki => wiki.MainLinks)
+                    .HasForeignKey(link => link.WikiId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.ToTable(nameof(Links));
             });
 
             builder.Entity<User>(entity =>
