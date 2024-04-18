@@ -24,6 +24,9 @@ namespace viki_01.Entities
         public string? Js { get; set; }
         [StringLength(int.MaxValue)]
         public string? Variables { get; set; }
+        
+        [StringLength(450, MinimumLength = 1)]
+        public string ImagePath { get; set; } = null!;
 
         public bool IsPublic { get; set; }
     }

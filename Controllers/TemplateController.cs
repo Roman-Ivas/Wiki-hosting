@@ -1,33 +1,26 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using viki_01.Contexts;
 using viki_01.Entities;
-using viki_01.Models;
+using viki_01.Extensions;
 using viki_01.Models.Dto;
 
 namespace viki_01.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class TemplateController : ControllerBase
+    public class TemplateController(
+        WikiHostingSqlServerContext context,
+        ILogger<TemplateController> logger)
+        : ControllerBase
     {
-        private readonly WikiHostingSqlServerContext _context;
-        private readonly ILogger<TemplateController> _logger;
-
-        public TemplateController(WikiHostingSqlServerContext context, ILogger<TemplateController> logger)
-        {
-            _context = context;
-            _logger = logger;
-        }
         [HttpGet]
         public async Task<IActionResult> GetTemplates([FromQuery] string? search = null)
         {
-            _logger.LogInformation("GetTemplates called");
+            logger.LogInformation("GetTemplates called");
 
-            IQueryable<Template> templates = _context.Templates;
+            IQueryable<Template> templates = context.Templates;
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -37,34 +30,53 @@ namespace viki_01.Controllers
             var templateList = await templates.ToListAsync();
             return Ok(templateList);
         }
-
-        [HttpDelete("{id:int}")]
-        public async Task<IActionResult> DeleteTemplate(int id)
+        
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetTemplate([FromRoute] int id)
         {
-            _logger.LogInformation("DeleteTemplate called with ID: {id}", id);
+            logger.LogInformation("GetTemplate called with ID: {id}", id);
 
-            var template = await _context.Templates.FindAsync(id);
-            if (template == null)
+            var template = await context.Templates.FindAsync(id);
+            if (template is null)
             {
-                _logger.LogWarning("Template with ID {id} not found", id);
+                logger.LogWarning("Template with ID {id} not found", id);
                 return NotFound();
             }
-            _context.Templates.Remove(template);
-            await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Template with ID {id} deleted successfully", id);
+            return Ok(template);
+        }
+
+        [HttpDelete("{id:int}")]
+        [Authorize("TemplateOwner")]
+        public async Task<IActionResult> DeleteTemplate(int id)
+        {
+            logger.LogInformation("DeleteTemplate called with ID: {id}", id);
+
+            var template = await context.Templates.FindAsync(id);
+            if (template == null)
+            {
+                logger.LogWarning("Template with ID {id} not found", id);
+                return NotFound();
+            }
+            context.Templates.Remove(template);
+            await context.SaveChangesAsync();
+
+            logger.LogInformation("Template with ID {id} deleted successfully", id);
             return NoContent();
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> CreateTemplate(TemplateDto templateDto)
         {
-            _logger.LogInformation("CreateTemplate called with template: {@templateDto}", templateDto);
+            logger.LogInformation("CreateTemplate called with template: {@templateDto}", templateDto);
 
+            var authorId = HttpContext.User.GetId();
             var template = new Template
             {
                 Name = templateDto.Name,
-                AuthorId = templateDto.AuthorId,
+                ImagePath = templateDto.ImagePath,
+                AuthorId = authorId,
                 Html = templateDto.Html,
                 Css = templateDto.Css,
                 Js = templateDto.Js,
@@ -72,36 +84,37 @@ namespace viki_01.Controllers
                 IsPublic = templateDto.IsPublic
             };
 
-            _context.Templates.Add(template);
-            await _context.SaveChangesAsync();
+            context.Templates.Add(template);
+            await context.SaveChangesAsync();
 
-            _logger.LogInformation("Template created successfully with ID: {id}", template.Id);
+            logger.LogInformation("Template created successfully with ID: {id}", template.Id);
             return CreatedAtAction(nameof(GetTemplates), new { id = template.Id }, template);
         }
 
         [HttpPut("{id:int}")]
+        [Authorize("TemplateOwner")]
         public async Task<IActionResult> UpdateTemplate(int id, TemplateDto updateTemplateDto)
         {
-            _logger.LogInformation("UpdateTemplate called with ID: {id} and updated template: {@updateTemplateDto}", id, updateTemplateDto);
-
-            var existingTemplate = await _context.Templates.FindAsync(id);
+            logger.LogInformation("UpdateTemplate called with ID: {id} and updated template: {@updateTemplateDto}", id, updateTemplateDto);
+            
+            
+            var existingTemplate = await context.Templates.FindAsync(id);
             if (existingTemplate == null)
             {
-                _logger.LogWarning("Template with ID {id} not found", id);
+                logger.LogWarning("Template with ID {id} not found", id);
                 return NotFound();
             }
 
             existingTemplate.Name = updateTemplateDto.Name;
-            existingTemplate.AuthorId = updateTemplateDto.AuthorId;
             existingTemplate.Html = updateTemplateDto.Html;
             existingTemplate.Css = updateTemplateDto.Css;
             existingTemplate.Js = updateTemplateDto.Js;
             existingTemplate.Variables = updateTemplateDto.Variables;
             existingTemplate.IsPublic = updateTemplateDto.IsPublic;
 
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
 
-            _logger.LogInformation("Template with ID {id} updated successfully", id);
+            logger.LogInformation("Template with ID {id} updated successfully", id);
             return NoContent();
         }
     }

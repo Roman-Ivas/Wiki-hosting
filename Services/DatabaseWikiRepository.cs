@@ -7,12 +7,16 @@ namespace viki_01.Services;
 
 public class DatabaseWikiRepository(WikiHostingSqlServerContext context, IMapper<Wiki, WikiDto> wikiMapper) : IWikiRepository
 {
-    public async Task<ICollection<Wiki>> GetAllAsync(string? search)
+    public async Task<ICollection<Wiki>> GetAllAsync(string? search, string? topic)
     {
         IQueryable<Wiki> wikis = context.Wikis;
         if (!string.IsNullOrWhiteSpace(search))
         {
             wikis = wikis.Where(w => w.Name.Contains(search));
+        }
+        if (!string.IsNullOrWhiteSpace(topic))
+        {
+            wikis = wikis.Where(w => w.Topics.Any(t => t.Name.ToUpper().Equals(topic.ToUpper())));
         }
 
         return await wikis.ToListAsync();
@@ -20,7 +24,7 @@ public class DatabaseWikiRepository(WikiHostingSqlServerContext context, IMapper
 
     public async Task<Wiki?> GetAsync(int wikiId)
     {
-        var wiki = await context.Wikis.FirstOrDefaultAsync(w => w.Id == wikiId);
+        var wiki = await context.Wikis.Include(wiki => wiki.Pages).FirstOrDefaultAsync(w => w.Id == wikiId);
         return wiki;
     }
 

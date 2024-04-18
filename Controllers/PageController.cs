@@ -1,7 +1,6 @@
 ﻿using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using viki_01.Authorization;
 using viki_01.Entities;
 using viki_01.Extensions;
 using viki_01.Models.Dto;
@@ -68,6 +67,56 @@ public class PageController(
             id);
         return Ok(mapper.Map(page));
     }
+    
+    [HttpGet($"{nameof(GetMainWikiPage)}/{{wikiId:int}}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMainWikiPage([FromRoute] int wikiId,
+        [FromServices] IMapper<Page, PageDto> mapper)
+    {
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetMainWikiPage), "Called with wiki ID: {wikiId}", wikiId);
+
+        var pages = await pageRepository.GetAllAsync(wikiId);
+        if (pages.Count < 1)
+        {
+            logger.LogActionWarning(HttpMethods.Get,
+                nameof(GetMainWikiPage),
+                "Pages for wiki with ID {wikiId} not found",
+                wikiId);
+            
+            return NotFound();
+        }
+
+        var page = pages.MinBy(page => page.CreatedAt);
+        if (page is null)
+        {
+            logger.LogActionWarning(HttpMethods.Get,
+                nameof(GetMainWikiPage),
+                "Main page for wiki with ID {wikiId} not found",
+                wikiId);
+            return NotFound();
+        }
+
+        logger.LogActionInformation(HttpMethods.Get,
+            nameof(GetMainWikiPage),
+            "Main page for wiki with ID {wikiId} found and succesfully returned",
+            wikiId);
+        
+        return Ok(mapper.Map(page));
+    }
+
+    [HttpGet(nameof(GetRelevantWikiPages))]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetRelevantWikiPages([FromQuery] int limit = 20)
+    {
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetRelevantWikiPages), "Called with limit: {limit}", limit);
+
+        var pages = await pageRepository.GetRelevantPagesAsync(limit);
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetRelevantWikiPages), "Succesfully returned relevant pages");
+        
+        return Ok(pages);
+    }
 
     [HttpPost("{wikiId:int}")]
     [Authorize]
@@ -89,6 +138,8 @@ public class PageController(
         var page = mapper.Map(pageUpsertDto);
         page.WikiId = wikiId;
         page.AuthorId = HttpContext.User.GetId();
+        page.RawHtml = page.RawHtml ?? string.Empty;
+        page.ProcessedHtml = page.ProcessedHtml ?? string.Empty;
 
         await pageRepository.AddAsync(page);
         logger.LogActionInformation(HttpMethods.Post,

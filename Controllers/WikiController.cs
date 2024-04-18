@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using viki_01.Contexts;
 using viki_01.Entities;
 using viki_01.Extensions;
 using viki_01.Models.Dto;
@@ -15,18 +18,10 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
    
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetWikis([FromServices] IMapper<Wiki, WikiDto> mapper, [FromQuery] string? search = null)
+    public async Task<IActionResult> GetWikis([FromServices] IMapper<Wiki, WikiDto> mapper, [FromQuery] string? search = null, [FromQuery] string? topic = null)
     {
-        logger.LogActionInformation(HttpMethods.Get, nameof(GetWikis), "Called with search: {search}", search ?? "null");
-        ICollection<Wiki> wikis;
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            wikis = await wikiRepository.GetAllAsync(search);
-        }
-        else
-        {
-            wikis = await wikiRepository.GetAllAsync(search);
-        }
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetWikis), "Called with search: {search} and topic: {topic}", search ?? "null", topic ?? "null");
+        var wikis = await wikiRepository.GetAllAsync(search, topic);
         
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWikis), "Wikis found and succesfully returned");
         return Ok(mapper.Map(wikis));
@@ -35,7 +30,7 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetWiki([FromRoute] int id, [FromServices] IMapper<Wiki, WikiDto> mapper)
+    public async Task<IActionResult> GetWiki([FromRoute] int id, [FromServices] IMapper<Wiki, WikiDto> mapper, [FromServices] IHubContext<NotificationHub> notificationHub)
     {
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWiki), "Called with ID: {id}", id);
         var wiki = await wikiRepository.GetAsync(id);
@@ -53,20 +48,58 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
     [Authorize("WikiOwner")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> UpdateWiki([FromRoute] int id, [FromBody] WikiUpsertDto wikiDto, [FromServices] IMapper<Wiki, WikiUpsertDto> mapper)
+    public async Task<IActionResult> UpdateWiki([FromRoute] int id, [FromBody] WikiUpsertDto wikiDto, [FromServices] WikiHostingSqlServerContext context)
     {
         logger.LogActionInformation(HttpMethods.Put, nameof(UpdateWiki), "Called with ID: {id}", id);
-        var wiki = await wikiRepository.GetAsync(id);
+        var wiki = await context.Wikis.Where(w => w.Id == id).Include(w => w.MainLinks).FirstOrDefaultAsync();
         if (wiki is null)
         {
             logger.LogActionWarning(HttpMethods.Put, nameof(UpdateWiki), "Wiki with ID {id} not found", id);
             return NotFound();
         }
-        
-        //TODO: Upgrade mapper to be able directly mapping from object to object
-        mapper.Map(mapper.Map(wikiDto), wiki);
+
+        if (!string.IsNullOrWhiteSpace(wikiDto.Name))
+            wiki.Name = wikiDto.Name;
+
+        if (!string.IsNullOrWhiteSpace(wikiDto.BackgroundImagePath))
+            wiki.BackgroundImagePath = wikiDto.BackgroundImagePath;
+
+        // Find links to remove
+        var linksToRemove = wiki.MainLinks.Where(link => wikiDto.MainLinks.All(dtoLink => dtoLink.Id != link.Id)).ToList();
+
+        // Remove the links
+        foreach (var link in linksToRemove)
+        {
+            var linkEntry = await context.Links.FindAsync(link.Id);
+            if (linkEntry is not null)
+            {
+                wiki.MainLinks.Remove(linkEntry);
+                context.Links.Remove(linkEntry);
+            }
+        }
+
+        // Find links to add
+        var linksToAdd = wikiDto.MainLinks.Where(dtoLink => wiki.MainLinks.All(link => link.Id != dtoLink.Id)).ToList();
+ 
+        // Add the new links
+        foreach (var link in linksToAdd)
+        {
+            var linkEntry = await context.Links.FindAsync(link.Id);
+            if (linkEntry is null)
+            {
+                if (string.IsNullOrWhiteSpace(link.Title) || string.IsNullOrWhiteSpace(link.Url))
+                    continue;
+                
+                linkEntry = new Link { Title = link.Title, Url = link.Url, WikiId = id }; 
+                await context.Links.AddAsync(linkEntry);
+            }
+            
+            wiki.MainLinks.Add(linkEntry);
+        }
+
+        await context.SaveChangesAsync();
         await wikiRepository.EditAsync(id, wiki);
-        logger.LogActionInformation(HttpMethods.Put, nameof(UpdateWiki), "Succesfully updated wiki with ID: {id}", id);
+        logger.LogActionInformation(HttpMethods.Put, nameof(UpdateWiki), "Successfully updated wiki with ID: {id}", id);
         return NoContent();
     }
     
@@ -157,7 +190,7 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
     [HttpGet("{id:int}/contributors")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetWikiContributors([FromRoute] int id, [FromServices] IContributorRepository contributorRepository)
+    public async Task<IActionResult> GetWikiContributors([FromRoute] int id, [FromQuery] string? role, [FromServices] IContributorRepository contributorRepository)
     {
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWikiContributors), "Called with ID: {id}", id);
         var wiki = await wikiRepository.GetAsync(id);
@@ -168,7 +201,7 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
         }
         
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWikiContributors), "Wiki with ID {id} found and succesfully returned", id);
-        return Ok(await contributorRepository.GetWikiContributors(id));
+        return Ok(await contributorRepository.GetWikiContributors(id, role));
     }
     
     [HttpPost("{id:int}/contributors/{userId}")]
