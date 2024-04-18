@@ -25,7 +25,6 @@ namespace viki_01.Entities
         [StringLength(int.MaxValue, MinimumLength = 1)]
         public string ProcessedHtml { get; set; } = null!;
 
-        public IList<MediaContent> MediaContents { get; set; } = new List<MediaContent>();
         public IList<Rating> UserRatings { get; set; } = new List<Rating>();
         public IList<Comment> Comments { get; set; } = new List<Comment>();
     }

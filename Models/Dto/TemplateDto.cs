@@ -12,8 +12,9 @@ namespace viki_01.Models.Dto
         public string Name { get; set; }
 
         [Required]
-        public int AuthorId { get; set; }
-
+        [StringLength(450, MinimumLength = 1)]
+        public string ImagePath { get; set; } = null!;
+        
         [Required]
         public string Html { get; set; }
 
