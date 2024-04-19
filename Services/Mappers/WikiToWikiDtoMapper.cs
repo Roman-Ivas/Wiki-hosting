@@ -10,6 +10,7 @@ public class WikiToWikiDtoMapper : IMapper<Wiki, WikiDto>
         return new WikiDto
         {
             Name = original.Name,
+            MainWikiImagePath = original.MainWikiImagePath, 
             IsArchived = original.IsArchived,
             NumberOfPages = original.Pages.Count
         };
@@ -20,6 +21,7 @@ public class WikiToWikiDtoMapper : IMapper<Wiki, WikiDto>
         return new Wiki
         {
             Name = transformed.Name,
+            MainWikiImagePath = transformed.MainWikiImagePath, 
             IsArchived = transformed.IsArchived,
             Pages = new List<Page>(transformed.NumberOfPages)
         };
@@ -28,6 +30,7 @@ public class WikiToWikiDtoMapper : IMapper<Wiki, WikiDto>
     public void Map(Wiki source, Wiki destination)
     {
         destination.Name = source.Name;
+        destination.MainWikiImagePath = source.MainWikiImagePath;
         destination.IsArchived = source.IsArchived;
         destination.Pages = source.Pages;
     }
