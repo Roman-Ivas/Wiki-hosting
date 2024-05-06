@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -19,6 +20,13 @@ namespace viki_01.Controllers
         public AuthController(IAuthService authService)
         {
             this.authService = authService;
+        }
+        
+        [HttpGet("GetMyId")]
+        [Authorize]
+        public IActionResult GetMyId()
+        {
+            return Ok(HttpContext.User.GetId());
         }
         
         [HttpGet("profile/{userId:int?}")]

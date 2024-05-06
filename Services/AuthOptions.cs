@@ -16,7 +16,7 @@ namespace viki_01.Services
         public const string ISSUER = "WebChatServer";
         public const string AUDIENCE = "WebChatClient";
         const string KEY = "f96f4463-f0fe-4539-badb-229d8fcb9ccd";
-        public const int JWT_LIFETIME_MINUTES = 15;
+        public const int JWT_LIFETIME_MINUTES = 60;
         public const int REFRESH_TOKEN_LIFETIME_HOURS = 24;
 
         public static SymmetricSecurityKey GetSymmetricSecurityKey()
