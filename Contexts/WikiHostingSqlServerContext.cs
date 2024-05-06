@@ -494,6 +494,16 @@ namespace viki_01.Contexts
                     .HasDefaultValue(false)
                     .IsRequired();
 
+                entity.Property(wiki => wiki.BackgroundImagePath)
+                    .HasMaxLength(512)
+                    .IsUnicode(false)
+                    .IsRequired();
+
+                entity.Property(wiki => wiki.MainWikiImagePath)
+                    .HasMaxLength(512)
+                    .IsUnicode(false)
+                    .IsRequired();
+
                 entity.HasMany(wiki => wiki.Topics)
                     .WithMany(topic => topic.RelevantWikis);
 
@@ -515,6 +525,8 @@ namespace viki_01.Contexts
                 entity.ToTable(nameof(Wikis), tableBuilder =>
                 {
                     tableBuilder.HasCheckConstraint($"CK_{nameof(Wikis)}_{nameof(Wiki.Name)}", $"[{nameof(Wiki.Name)}] != ''");
+                    tableBuilder.HasCheckConstraint($"CK_{nameof(Wikis)}_{nameof(Wiki.BackgroundImagePath)}", $"[{nameof(Wiki.BackgroundImagePath)}] != ''");
+                    tableBuilder.HasCheckConstraint($"CK_{nameof(Wikis)}_{nameof(Wiki.MainWikiImagePath)}", $"[{nameof(Wiki.MainWikiImagePath)}] != ''");
                 });
             });
 

@@ -54,7 +54,10 @@ builder.Services.AddKeyedSingleton(ServiceKeys.LoggerSerializerOptions,
     });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options => AuthOptions.ConfigureJwtBearer(options));
+    .AddJwtBearer(options =>
+    {
+        AuthOptions.ConfigureJwtBearer(options);
+    });
 
 builder.Services.AddAuthorization(
     options =>

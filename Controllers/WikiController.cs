@@ -40,9 +40,76 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
             return NotFound();
         }
         
+        var contributors = wiki.Contributors.Select(c => new ContributorDto { Id = c.Id, UserId = c.UserId, UserName = c.User.UserName!, WikiId = c.WikiId, ContributorRoleId = c.ContributorRoleId });
+        var mappedWiki = mapper.Map(wiki);
+        mappedWiki.Contributors = contributors;
+        
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWiki), "Wiki with ID {id} found and succesfully returned", id);
-        return Ok(mapper.Map(wiki));
+        return Ok(mappedWiki);
     }
+    
+    [HttpPost]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CreateWiki([FromBody] WikiUpsertDto wikiDto, [FromServices] WikiHostingSqlServerContext context)
+    {
+        logger.LogActionInformation(HttpMethods.Post, nameof(CreateWiki), "Called with Name: {name}", wikiDto.Name);
+
+        var topic = await context.Topics.Where(t => t.Name.ToUpper().Equals(wikiDto.Topic.ToUpper())).FirstOrDefaultAsync();
+        if (topic is null)
+        {
+            logger.LogActionWarning(HttpMethods.Post, nameof(CreateWiki), "Topic with name {topic} not found", wikiDto.Topic);
+            return BadRequest();
+        }
+        
+        var wiki = new Wiki
+        {
+            Name = wikiDto.Name,
+            BackgroundImagePath = wikiDto.BackgroundImagePath,
+            MainWikiImagePath = wikiDto.MainWikiImagePath,
+            Topics = new List<Topic> {topic},
+            MainLinks = new List<Link>()
+        };
+    
+        var createdWiki = await context.Wikis.AddAsync(wiki);
+        await context.SaveChangesAsync();
+        
+        var ownerContributorRole =
+            await context.ContributorRoles.Where(role => role.Name.ToUpper().Equals("OWNER")).FirstOrDefaultAsync();
+
+        if (ownerContributorRole is null)
+            return BadRequest("Server error. Wiki owner role is not defined");
+
+        var contributor = new Contributor
+        {
+            UserId = HttpContext.User.GetId(),
+            ContributorRoleId = ownerContributorRole.Id,
+            WikiId = createdWiki.Entity.Id
+        };
+        
+        await context.Contributors.AddAsync(contributor);
+        await context.SaveChangesAsync();
+
+        var mainPageHtml = $"<div><h1 style='font-weight: bold; color: white;'>Welcome to the {wiki.Name} wiki!</h1><div style='color: white'>We're a collaborative community website about {wiki.Name} that anyone, including you, can build and expand. Wikis like this one depend on readers getting involved and adding content. Click the \"ADD NEW PAGE\" or \"EDIT\" button at the top of any page to get started!</div></div>";
+        var mainPage = new Page
+        {
+            AuthorId = HttpContext.User.GetId(),
+            WikiId = createdWiki.Entity.Id,
+            RawHtml = mainPageHtml,
+            ProcessedHtml = mainPageHtml,
+            CreatedAt = DateTime.Now,
+            EditedAt = DateTime.Now
+        };
+        
+        var createdPage = await context.Pages.AddAsync(mainPage);
+        createdWiki.Entity.Pages.Add(createdPage.Entity);
+
+        await context.SaveChangesAsync();
+        logger.LogActionInformation(HttpMethods.Post, nameof(CreateWiki), "Successfully created wiki with Name: {name}", wikiDto.Name);
+        return CreatedAtAction(nameof(GetWiki), new { id = wiki.Id }, wiki);
+    }
+
     
     [HttpPut("{id:int}")]
     [Authorize("WikiOwner")]
@@ -51,7 +118,7 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
     public async Task<IActionResult> UpdateWiki([FromRoute] int id, [FromBody] WikiUpsertDto wikiDto, [FromServices] WikiHostingSqlServerContext context)
     {
         logger.LogActionInformation(HttpMethods.Put, nameof(UpdateWiki), "Called with ID: {id}", id);
-        var wiki = await context.Wikis.Where(w => w.Id == id).Include(w => w.MainLinks).FirstOrDefaultAsync();
+        var wiki = await context.Wikis.Where(w => w.Id == id).Include(w => w.MainLinks).Include(w => w.Contributors).FirstOrDefaultAsync();
         if (wiki is null)
         {
             logger.LogActionWarning(HttpMethods.Put, nameof(UpdateWiki), "Wiki with ID {id} not found", id);
@@ -64,6 +131,16 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
         if (!string.IsNullOrWhiteSpace(wikiDto.BackgroundImagePath))
             wiki.BackgroundImagePath = wikiDto.BackgroundImagePath;
 
+        if (!string.IsNullOrWhiteSpace(wikiDto.MainWikiImagePath))
+            wiki.MainWikiImagePath = wikiDto.MainWikiImagePath;
+        
+        if (!string.IsNullOrWhiteSpace(wikiDto.Topic))
+        {
+            var topic = await context.Topics.Where(t => t.Name.ToUpper().Equals(wikiDto.Topic.ToUpper())).FirstOrDefaultAsync();
+            if (topic is not null)
+                wiki.Topics = new List<Topic> {topic};
+        }
+        
         // Find links to remove
         var linksToRemove = wiki.MainLinks.Where(link => wikiDto.MainLinks.All(dtoLink => dtoLink.Id != link.Id)).ToList();
 
@@ -96,6 +173,47 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
             
             wiki.MainLinks.Add(linkEntry);
         }
+        
+        // Find contributors to remove
+            var contributorsToRemove = wiki.Contributors.Where(contributor => wikiDto.Contributors.All(dtoContributor => dtoContributor.UserId != contributor.UserId)).ToList();
+        
+            // Remove the contributors
+            foreach (var contributor in contributorsToRemove)
+            {
+                var contributorEntry = await context.Contributors.FindAsync(contributor.Id);
+                if (contributorEntry is not null)
+                {
+                    wiki.Contributors.Remove(contributorEntry);
+                    context.Contributors.Remove(contributorEntry);
+                }
+            }
+            
+            var contributorsToUpdate = wiki.Contributors.Where(contributor => wikiDto.Contributors.Any(dtoContributor => dtoContributor.UserId == contributor.UserId && dtoContributor.ContributorRoleId != contributor.ContributorRoleId)).ToList();
+
+            // Update the contributors
+            foreach (var contributor in contributorsToUpdate)
+            {
+                var dtoContributor = wikiDto.Contributors.First(c => c.UserId == contributor.UserId);
+                contributor.ContributorRoleId = dtoContributor.ContributorRoleId;
+            }
+        
+            // Find contributors to add
+            var contributorsToAdd = wikiDto.Contributors.Where(dtoContributor => wiki.Contributors.All(contributor => contributor.UserId != dtoContributor.UserId)).ToList();
+        
+            // Add the new contributors
+            foreach (var contributor in contributorsToAdd)
+            {
+                var user = await context.Users.FirstOrDefaultAsync(u => u.UserName!.Equals(contributor.UserName));
+                if (user is null)
+                {
+                    // Handle the case where the user is not found
+                    continue;
+                }
+        
+                var contributorEntry = new Contributor { UserId = user.Id, WikiId = id, ContributorRoleId = contributor.ContributorRoleId };
+                await context.Contributors.AddAsync(contributorEntry);
+                wiki.Contributors.Add(contributorEntry);
+            }
 
         await context.SaveChangesAsync();
         await wikiRepository.EditAsync(id, wiki);
@@ -187,6 +305,14 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
         return NoContent();
     }
     
+    [HttpGet("contributors/roles")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetContributorRoles([FromServices] WikiHostingSqlServerContext context)
+    {
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetContributorRoles), "Called");
+        return Ok(await context.ContributorRoles.ToListAsync());
+    }
+    
     [HttpGet("{id:int}/contributors")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -254,5 +380,7 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
         logger.LogActionInformation(HttpMethods.Delete, nameof(RemoveWikiContributor), "Succesfully removed contributor with ID: {userId} from wiki with ID: {id}", userId, id);
         return NoContent();
     }
+    
+    
     
 }
