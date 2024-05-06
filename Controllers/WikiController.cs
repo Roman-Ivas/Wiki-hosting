@@ -15,7 +15,7 @@ namespace viki_01.Controllers;
 public class WikiController(IWikiRepository wikiRepository, ILoggerFactory loggerFactory) : ControllerBase
 {
     private readonly ILogger<WikiController> logger = loggerFactory.CreateLogger<WikiController>();
-    
+   
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWikis([FromServices] IMapper<Wiki, WikiDto> mapper, [FromQuery] string? search = null, [FromQuery] string? topic = null)
@@ -26,7 +26,7 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWikis), "Wikis found and succesfully returned");
         return Ok(mapper.Map(wikis));
     }
-    
+
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -380,7 +380,4 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
         logger.LogActionInformation(HttpMethods.Delete, nameof(RemoveWikiContributor), "Succesfully removed contributor with ID: {userId} from wiki with ID: {id}", userId, id);
         return NoContent();
     }
-    
-    
-    
 }

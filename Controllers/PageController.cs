@@ -18,6 +18,31 @@ public class PageController(
 {
     private readonly ILogger<PageController> logger = loggerFactory.CreateLogger<PageController>();
 
+    [HttpGet("wiki/{wikiId:int}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPagesByWikiId([FromRoute] int wikiId,
+    [FromServices] IMapper<Page, PageDto> mapper)
+    {
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetPagesByWikiId), "Called with Wiki ID: {wikiId}", wikiId);
+
+        var pages = await pageRepository.GetAllAsync(wikiId);
+        if (pages == null || pages.Count == 0)
+        {
+            logger.LogActionWarning(HttpMethods.Get,
+                nameof(GetPagesByWikiId),
+                "No pages found for Wiki ID {wikiId}",
+                wikiId);
+            return NotFound();
+        }
+
+        logger.LogActionInformation(HttpMethods.Get,
+            nameof(GetPagesByWikiId),
+            "Pages found for Wiki ID {wikiId} and successfully returned",
+            wikiId);
+        return Ok(pages.Select(page => mapper.Map(page)));
+    }
+
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
