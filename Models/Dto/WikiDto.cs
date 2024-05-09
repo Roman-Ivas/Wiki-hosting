@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using viki_01.Entities;
 
 namespace viki_01.Models.Dto;
 
@@ -16,6 +17,8 @@ public class WikiDto
     [StringLength(512, MinimumLength = 1)]
     public string MainWikiImagePath { get; set; } = null!;
 
+
     public IEnumerable<LinkDto> MainLinks { get; set; } = new List<LinkDto>();
     public IEnumerable<ContributorDto> Contributors { get; set; } = new List<ContributorDto>();
+
 }

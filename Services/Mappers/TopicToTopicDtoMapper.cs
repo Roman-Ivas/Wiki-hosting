@@ -1,7 +1,6 @@
 ﻿using viki_01.Entities;
 using viki_01.Models.Dto;
-
-namespace viki_01.Services.Mappers;
+using viki_01.Services;
 
 public class TopicToTopicDtoMapper : IMapper<Topic, TopicDto>
 {
@@ -10,7 +9,8 @@ public class TopicToTopicDtoMapper : IMapper<Topic, TopicDto>
         return new TopicDto
         {
             Id = source.Id,
-            Name = source.Name
+            Name = source.Name,
+            topicImage = source.topicImage 
         };
     }
 
@@ -19,15 +19,16 @@ public class TopicToTopicDtoMapper : IMapper<Topic, TopicDto>
         return new Topic
         {
             Id = destination.Id,
-            Name = destination.Name
+            Name = destination.Name,
+            topicImage = destination.topicImage 
         };
     }
 
     public void Map(Topic source, Topic destination)
     {
         destination.Name = source.Name;
+        destination.topicImage = source.topicImage;
         destination.InterestedUsers = source.InterestedUsers;
         destination.RelevantWikis = source.RelevantWikis;
     }
-    
 }

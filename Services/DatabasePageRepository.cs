@@ -6,7 +6,7 @@ using viki_01.Models.Dto;
 
 namespace viki_01.Services;
 
-public class DatabasePageRepository(WikiHostingSqlServerContext context, IMapper<Page, PageDto> pageMapper, IMapper<User, AuthorDto> authorMapper) : IPageRepository
+public class DatabasePageRepository(WikiHostingSqlServerContext context, IMapper<Page, PageDto> pageMapper, IMapper<User, AuthorDto> authorMapper, IMapper<Wiki, WikiDto> wikiMapper) : IPageRepository
 {
     public async Task<ICollection<Page>> GetAllAsync(int wikiId)
     {
@@ -15,14 +15,33 @@ public class DatabasePageRepository(WikiHostingSqlServerContext context, IMapper
             .ToListAsync();
     }
 
-    public async Task<ICollection<PageFeedDto>> GetRelevantPagesAsync(int limit = 20)
+    public async Task<ICollection<PageFeedDto>> GetRelevantPagesAsync(int limit = 20, int? topicId = null)
     {
-        var pages = await context.Pages
-            .OrderByDescending(page => page.CreatedAt)
+        //var pages = await context.Pages
+        //    .OrderByDescending(page => page.CreatedAt)
+        //    .Take(limit)
+        //    .Include(page => page.Author)
+        //    .Include(page => page.UserRatings)
+        //    .Include(page => page.Comments)
+        //    .Include(page => page.Wiki).ThenInclude(wiki => wiki.Topics)
+        //    .ToListAsync();
+
+        var query = context.Pages
+     .OrderByDescending(page => page.CreatedAt)
+     .Include(page => page.Author)
+     .Include(page => page.UserRatings)
+     .Include(page => page.Comments)
+     .Include(page => page.Wiki).ThenInclude(wiki => wiki.Topics) as IQueryable<Page>;
+
+
+
+        if (topicId.HasValue)
+        {
+            query = query.Where(page => page.Wiki.Topics.Any(topic => topic.Id == topicId.Value));
+        }
+
+        var pages = await query
             .Take(limit)
-            .Include(page => page.Author)
-            .Include(page => page.UserRatings)
-            .Include(page => page.Comments)
             .ToListAsync();
 
         var pageFeedDtos = pages
@@ -46,10 +65,12 @@ public class DatabasePageRepository(WikiHostingSqlServerContext context, IMapper
                     CreatedAt = page.CreatedAt,
                     EditedAt = page.EditedAt,
                     WikiId = page.WikiId,
+                    Wiki = wikiMapper.Map(page.Wiki),
                     Author = authorMapper.Map(page.Author),
                     NumberOfComments = page.Comments.Count,
                     NumberOfLikes = page.UserRatings.Aggregate(0,
-                        (acc, rating) => acc + rating.NumberOfLikes + rating.NumberOfDislikes)
+                        (acc, rating) => acc + rating.NumberOfLikes + rating.NumberOfDislikes),
+                     TopicId = page.Wiki.Topics.FirstOrDefault()?.Id ?? 0
                 };
             });
         
