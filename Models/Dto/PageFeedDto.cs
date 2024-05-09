@@ -6,6 +6,8 @@ public class PageFeedDto
 
     public int WikiId { get; set; }
 
+    public WikiDto Wiki { get; set; } = null!;
+
     public AuthorDto Author { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
@@ -16,4 +18,5 @@ public class PageFeedDto
 
     public int NumberOfLikes { get; set; }
     public int NumberOfComments { get; set; }
+    public int TopicId { get; set; }
 }

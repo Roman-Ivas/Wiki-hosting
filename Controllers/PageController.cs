@@ -108,11 +108,11 @@ public class PageController(
     [HttpGet(nameof(GetRelevantWikiPages))]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetRelevantWikiPages([FromQuery] int limit = 20)
+    public async Task<IActionResult> GetRelevantWikiPages([FromQuery] int limit = 20, int? topicId =null)
     {
-        logger.LogActionInformation(HttpMethods.Get, nameof(GetRelevantWikiPages), "Called with limit: {limit}", limit);
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetRelevantWikiPages), "Called with limit: {limit}", limit,topicId);
 
-        var pages = await pageRepository.GetRelevantPagesAsync(limit);
+        var pages = await pageRepository.GetRelevantPagesAsync(limit,topicId);
         logger.LogActionInformation(HttpMethods.Get, nameof(GetRelevantWikiPages), "Succesfully returned relevant pages");
         
         return Ok(pages);

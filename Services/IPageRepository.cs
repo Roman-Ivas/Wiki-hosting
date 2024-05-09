@@ -6,7 +6,7 @@ namespace viki_01.Services;
 public interface IPageRepository
 {
     public Task<ICollection<Page>> GetAllAsync(int wikiId);
-    public Task<ICollection<PageFeedDto>> GetRelevantPagesAsync(int limit = 20);
+    public Task<ICollection<PageFeedDto>> GetRelevantPagesAsync(int limit = 20, int? topicId = null);
     public Task<Page?> GetAsync(int id);
     public Task AddAsync(Page page);
     public Task EditAsync(int id, Page editedPage);
