@@ -11,7 +11,6 @@ public class WikiToWikiDtoMapper : IMapper<Wiki, WikiDto>
         {
             Id = original.Id,
             Name = original.Name,
-            MainWikiImagePath = original.MainWikiImagePath, 
             IsArchived = original.IsArchived,
             NumberOfPages = original.Pages.Count,
             BackgroundImagePath = original.BackgroundImagePath,
@@ -31,7 +30,6 @@ public class WikiToWikiDtoMapper : IMapper<Wiki, WikiDto>
             IsArchived = transformed.IsArchived,
             Pages = new List<Page>(transformed.NumberOfPages),
             BackgroundImagePath = transformed.BackgroundImagePath,
-            MainWikiImagePath = transformed.MainWikiImagePath,
             MainLinks = transformed.MainLinks.Select(linkDto => new Link { Title = linkDto.Title!, Url = linkDto.Url!, Id = linkDto.Id }).ToList(),
             Contributors = transformed.Contributors.Select(contributorDto => new Contributor { UserId = contributorDto.UserId, WikiId = contributorDto.WikiId, ContributorRoleId = contributorDto.ContributorRoleId }).ToList()
         };
