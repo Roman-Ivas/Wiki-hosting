@@ -10,6 +10,7 @@ public class PageToPageDtoMapper : IMapper<Page, PageDto>
     {
         return new PageDto
         {
+            Id = original.Id,
             AuthorId = original.AuthorId,
             WikiId = original.WikiId,
             RawHtml = original.RawHtml,
@@ -21,6 +22,7 @@ public class PageToPageDtoMapper : IMapper<Page, PageDto>
     {
         return new Page
         {
+            Id = transformed.Id,
             AuthorId = transformed.AuthorId,
             WikiId = transformed.WikiId,
             RawHtml = transformed.RawHtml,
@@ -30,9 +32,10 @@ public class PageToPageDtoMapper : IMapper<Page, PageDto>
 
     public void Map(Page source, Page destination)
     {
+        destination.Id = source.Id;
         destination.AuthorId = source.AuthorId;
         destination.WikiId = source.WikiId;
         destination.RawHtml = source.RawHtml;
         destination.ProcessedHtml = source.ProcessedHtml;
     }
-}
+}    

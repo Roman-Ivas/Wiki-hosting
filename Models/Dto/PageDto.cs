@@ -4,6 +4,7 @@ namespace viki_01.Models.Dto;
 
 public class PageDto
 {
+    public int Id { get; set; }
     public int WikiId { get; set; }
     public int AuthorId { get; set; } = default!;
     

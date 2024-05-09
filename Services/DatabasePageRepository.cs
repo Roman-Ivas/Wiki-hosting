@@ -82,6 +82,15 @@ public class DatabasePageRepository(WikiHostingSqlServerContext context, IMapper
         return context.Pages.FirstOrDefaultAsync(page => page.Id == id);
     }
 
+    public Task<Page?> GetAsync(string wikiName, string pageName)
+    {
+        return context.Pages
+            .Include(page => page.Wiki)
+            .FirstOrDefaultAsync(page =>
+                page.Wiki.Name == wikiName &&
+                page.ProcessedHtml.ToLower().Contains(pageName.ToLower()));
+    }
+
     public async Task AddAsync(Page page)
     {
         await context.AddAsync(page);

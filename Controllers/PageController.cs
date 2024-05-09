@@ -67,6 +67,37 @@ public class PageController(
             id);
         return Ok(mapper.Map(page));
     }
+
+    [HttpGet("{wikiTitle}/{pageTitle}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPage([FromRoute] string wikiTitle,
+        [FromRoute] string pageTitle,
+        [FromServices] IMapper<Page, PageDto> mapper)
+    {
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetPage), "Called with wiki name: {wikiName} and page name: {pageName}", wikiTitle, pageTitle);
+
+        var decodedWikiTitle = System.Net.WebUtility.UrlDecode(wikiTitle);
+        var decodedPageTitle = System.Net.WebUtility.UrlDecode(pageTitle);
+
+        var page = await pageRepository.GetAsync(decodedWikiTitle, decodedPageTitle);
+        if (page is null)
+        {
+            logger.LogActionWarning(HttpMethods.Get,
+                nameof(GetPage),
+                "Page with wiki name {wikiName} and page name {pageName} not found",
+                wikiTitle,
+                pageTitle);
+            return NotFound();
+        }
+
+        logger.LogActionInformation(HttpMethods.Get,
+            nameof(GetPage),
+            "Page with wiki name {wikiName} and page name {pageName} found and succesfully returned",
+            wikiTitle,
+            pageTitle);
+        return Ok(mapper.Map(page));
+    }
     
     [HttpGet($"{nameof(GetMainWikiPage)}/{{wikiId:int}}")]
     [ProducesResponseType(StatusCodes.Status200OK)]

@@ -627,9 +627,14 @@ namespace viki_01.Contexts
 
                 entity.Property(user => user.AvatarPath)
                     .HasMaxLength(512)
-                    .HasDefaultValue("/images/image.jpg")
+                    .HasDefaultValue("/assets/avatar_placeholder.jpg")
                     .IsUnicode(false)
                     .IsRequired();
+
+                entity.Property(user => user.About)
+                    .HasMaxLength(1024)
+                    .IsUnicode()
+                    .IsRequired(false);
 
                 entity.ToTable(nameof(Users),
                     tableBuilder =>

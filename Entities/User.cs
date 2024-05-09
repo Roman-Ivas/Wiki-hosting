@@ -12,6 +12,7 @@ namespace viki_01.Entities
     public class User : IdentityUser<int>
     {
         public string Password { get; set; }
+        public string? About { get; set; }
 
 
 

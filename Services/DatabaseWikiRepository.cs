@@ -33,6 +33,18 @@ public class DatabaseWikiRepository(WikiHostingSqlServerContext context, IMapper
 
         return wiki;
     }
+    
+    public async Task<Wiki?> GetAsync(string wikiTitle)
+    {
+        var wiki = await context.Wikis
+            .Include(wiki => wiki.Pages)
+            .Include(wiki => wiki.MainLinks)
+            .Include(wiki => wiki.Contributors)
+            .ThenInclude(contributor => contributor.User)  // Include the related User entities
+            .FirstOrDefaultAsync(w => w.Name.ToLower().Equals(wikiTitle.ToLower()));
+
+        return wiki;
+    }
 
     public async Task AddAsync(Wiki wiki)
     {
