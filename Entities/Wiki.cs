@@ -16,9 +16,9 @@ namespace viki_01.Entities
         [StringLength(512, MinimumLength = 1)]
         public string BackgroundImagePath { get; set; } = null!;
 
-        [StringLength(512, MinimumLength = 1)]
+        [StringLength(512, MinimumLength = 1)] 
         public string MainWikiImagePath { get; set; } = null!;
-
+        
         public IList<Link> MainLinks { get; set; } = new List<Link>();
         public IList<Topic> Topics { get; set; } = new List<Topic>();
         public IList<Page> Pages { get; set; } = new List<Page>();

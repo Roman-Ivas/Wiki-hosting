@@ -34,7 +34,7 @@ namespace viki_01.Services
         public AuthResponse Authenticate(SignInCredentials credentials)
         {
             var user = appDbContext.Users
-                .FirstOrDefault(u => String.Equals(u.UserName, credentials.Username) && String.Equals(u.Password, credentials.Password));
+                .FirstOrDefault(u => string.Equals(u.UserName, credentials.Username) && string.Equals(u.Password, credentials.Password));
 
             if (user == null)
                 return null;

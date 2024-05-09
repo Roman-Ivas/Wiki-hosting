@@ -3,6 +3,7 @@ using viki_01.Models.Dto;
 
 namespace viki_01.Services.Mappers;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class PageToPageDtoMapper : IMapper<Page, PageDto>
 {
     public PageDto Map(Page original)
