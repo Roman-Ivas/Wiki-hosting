@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -21,19 +23,23 @@ namespace viki_01.Controllers
         {
             this.authService = authService;
         }
-        
+
         [HttpGet("GetMyId")]
         [Authorize]
         public IActionResult GetMyId()
         {
             return Ok(HttpContext.User.GetId());
         }
-        
+
         [HttpGet("profile/{userId:int?}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<IActionResult> Profile([FromServices] WikiHostingSqlServerContext context, [FromRoute] int? userId, [FromQuery] int relatedContentLoadLimit = 20)
+        public async Task<IActionResult> Profile([FromServices] WikiHostingSqlServerContext context,
+            [FromRoute] int? userId, [FromQuery] int relatedContentLoadLimit = 0)
         {
+            if (relatedContentLoadLimit > 100)
+                return BadRequest("Related content load limit is too high!");
+
             if (userId.HasValue)
             {
                 var userProfile = await context.Users
@@ -54,16 +60,22 @@ namespace viki_01.Controllers
                             Feedbacks = u.Feedbacks.Take(relatedContentLoadLimit),
                             InterestedTopics = u.InterestedTopics.Take(relatedContentLoadLimit),
                             Subscription = u.Subscription.Subscription,
-                            LockoutEnabled = u.LockoutEnabled
+                            LockoutEnabled = u.LockoutEnabled,
+                            Roles = context.UserRoles
+                                .Where(ur => ur.UserId == u.Id)
+                                .Join(context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                                .ToList(),
+                            About = u.About,
+                            NumberOfPages = u.CreatedPages.Count
                         }
                     )
                     .FirstOrDefaultAsync();
-                
+
                 if (userProfile is null)
                 {
                     return NotFound();
                 }
-                
+
                 return Ok(userProfile);
             }
 
@@ -90,21 +102,47 @@ namespace viki_01.Controllers
                         Feedbacks = u.Feedbacks.Take(relatedContentLoadLimit),
                         InterestedTopics = u.InterestedTopics.Take(relatedContentLoadLimit),
                         Subscription = u.Subscription.Subscription,
-                        LockoutEnabled = u.LockoutEnabled
+                        LockoutEnabled = u.LockoutEnabled,
+                        Roles = context.UserRoles
+                            .Where(ur => ur.UserId == u.Id)
+                            .Join(context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                            .ToList(),
+                        About = u.About,
+                        NumberOfPages = u.CreatedPages.Count
                     })
                     .FirstOrDefaultAsync();
-                
+
                 if (userOwnProfile is null)
                 {
                     return NotFound();
                 }
-                
+
                 return Ok(userOwnProfile);
             }
             catch (Exception)
             {
                 return Unauthorized();
             }
+        }
+        
+        [HttpPut("profile")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> EditProfile([FromServices] WikiHostingSqlServerContext context, [FromBody] UserProfileUpsertDto userProfileUpsertDto)
+        {
+            var userId = HttpContext.User.GetId();
+            var user = await context.Users.FindAsync(userId);
+
+            if (user is null)
+            {
+                return NotFound();
+            }
+
+            user.About = userProfileUpsertDto.About;
+            await context.SaveChangesAsync();
+
+            return Ok();
         }
 
         /// <summary>
@@ -156,7 +194,8 @@ namespace viki_01.Controllers
         [HttpGet("auth/refresh")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest, Type = typeof(ErrorResponse))]
-        public ActionResult<AuthResponse> RefreshToken([FromQuery(Name = "refresh-token")] string refreshToken)
+        public ActionResult<AuthResponse> RefreshToken(
+            [FromQuery(Name = "refresh-token")] string refreshToken)
         {
             var authResponse = authService.RenewToken(refreshToken);
 

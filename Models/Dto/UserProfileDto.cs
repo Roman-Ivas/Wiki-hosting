@@ -20,4 +20,7 @@ public class UserProfileDto
     public IEnumerable<Page> CreatedPages { get; set; } = new List<Page>();
     public IEnumerable<Theme> CreatedThemes { get; set; } = new List<Theme>();
     public IEnumerable<Template> CreatedTemplates { get; set; } = new List<Template>();
+    public IEnumerable<string> Roles { get; set; } = new List<string>();
+    public string? About { get; set; }
+    public int NumberOfPages { get; set; }
 }

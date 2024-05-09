@@ -47,6 +47,36 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
         logger.LogActionInformation(HttpMethods.Get, nameof(GetWiki), "Wiki with ID {id} found and succesfully returned", id);
         return Ok(mappedWiki);
     }
+
+    [HttpGet("{wikiTitle}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetWiki([FromRoute] string wikiTitle,
+        [FromServices] IMapper<Wiki, WikiDto> mapper)
+    {
+        logger.LogActionInformation(HttpMethods.Get, nameof(GetWiki), "Called with wiki title: {wikiTitle}", wikiTitle);
+
+        var decodedWikiTitle = System.Net.WebUtility.UrlDecode(wikiTitle);
+        var wiki = await wikiRepository.GetAsync(decodedWikiTitle);
+        if (wiki is null)
+        {
+            logger.LogActionWarning(HttpMethods.Get,
+                nameof(GetWiki),
+                "Wiki with title {wikiTitle} not found",
+                wikiTitle);
+            return NotFound();
+        }
+
+        var contributors = wiki.Contributors.Select(c => new ContributorDto { Id = c.Id, UserId = c.UserId, UserName = c.User.UserName!, WikiId = c.WikiId, ContributorRoleId = c.ContributorRoleId });
+        var mappedWiki = mapper.Map(wiki);
+        mappedWiki.Contributors = contributors;
+
+        logger.LogActionInformation(HttpMethods.Get,
+            nameof(GetWiki),
+            "Wiki with title {wikiTitle} found and succesfully returned",
+            wikiTitle);
+        return Ok(mappedWiki);
+    }
     
     [HttpPost]
     [Authorize]
@@ -380,7 +410,5 @@ public class WikiController(IWikiRepository wikiRepository, ILoggerFactory logge
         logger.LogActionInformation(HttpMethods.Delete, nameof(RemoveWikiContributor), "Succesfully removed contributor with ID: {userId} from wiki with ID: {id}", userId, id);
         return NoContent();
     }
-    
-    
     
 }

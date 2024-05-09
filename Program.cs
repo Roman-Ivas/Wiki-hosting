@@ -6,8 +6,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
+using Microsoft.AspNetCore.Identity;
 using viki_01.Authorization;
 using viki_01.Contexts;
+using viki_01.Entities;
 using viki_01.Extensions;
 using viki_01.Services;
 using viki_01.Services.Mappers;
@@ -68,6 +70,10 @@ builder.Services.AddAuthorization(
         options.AddPolicy(name: "WikiOwner", policy => policy.Requirements.Add(new OperationAuthorizationRequirement { Name = "WikiOwner" }));
         options.AddPolicy(name: "TemplateOwner", policy => policy.Requirements.Add(new OperationAuthorizationRequirement { Name = "TemplateOwner" }));
     });
+//
+// builder.Services.AddIdentity<User, IdentityRole<int>>()
+//     .AddEntityFrameworkStores<WikiHostingSqlServerContext>()
+//     .AddTokenProvider<SignalrEmailBasedUserIdProvider>(nameof(SignalrEmailBasedUserIdProvider));
 
 builder.Services.AddSingleton<IUserIdProvider, SignalrEmailBasedUserIdProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, PageAuthorizationHandler>();
