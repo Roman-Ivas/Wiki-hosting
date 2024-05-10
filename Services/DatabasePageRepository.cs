@@ -12,6 +12,7 @@ public class DatabasePageRepository(WikiHostingSqlServerContext context, IMapper
     {
         return await context.Pages
             .Where(page => page.WikiId == wikiId)
+            .Include(page => page.UserRatings)
             .ToListAsync();
     }
 
@@ -69,7 +70,7 @@ public class DatabasePageRepository(WikiHostingSqlServerContext context, IMapper
                     Author = authorMapper.Map(page.Author),
                     NumberOfComments = page.Comments.Count,
                     NumberOfLikes = page.UserRatings.Aggregate(0,
-                        (acc, rating) => acc + rating.NumberOfLikes + rating.NumberOfDislikes),
+                        (acc, rating) => acc + (rating.NumberOfLikes - rating.NumberOfDislikes), result => Math.Max(0, result)),
                      TopicId = page.Wiki.Topics.FirstOrDefault()?.Id ?? 0
                 };
             });
@@ -79,12 +80,13 @@ public class DatabasePageRepository(WikiHostingSqlServerContext context, IMapper
 
     public Task<Page?> GetAsync(int id)
     {
-        return context.Pages.FirstOrDefaultAsync(page => page.Id == id);
+        return context.Pages.Include(page => page.UserRatings).FirstOrDefaultAsync(page => page.Id == id);
     }
 
     public Task<Page?> GetAsync(string wikiName, string pageName)
     {
         return context.Pages
+            .Include(page => page.UserRatings)
             .Include(page => page.Wiki)
             .FirstOrDefaultAsync(page =>
                 page.Wiki.Name == wikiName &&

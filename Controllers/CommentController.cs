@@ -2,8 +2,11 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using viki_01.Contexts;
 using viki_01.Entities;
+using viki_01.Extensions;
 using viki_01.Models.Dto;
 
 namespace viki_01.Controllers
@@ -26,7 +29,9 @@ namespace viki_01.Controllers
         {
             _logger.LogInformation("GetComment called with ID: {id}", id);
 
-            var comment = await _context.Comments.FindAsync(id);
+            var comment = await _context.Comments.Where(c => c.Id == id).Include(c => c.Author)
+                .FirstOrDefaultAsync();
+            
             if (comment == null)
             {
                 _logger.LogWarning("Comment with ID {id} not found", id);
@@ -36,8 +41,21 @@ namespace viki_01.Controllers
             _logger.LogInformation("Comment with ID {id} found and returned", id);
             return Ok(comment);
         }
+        
+        [HttpGet($"{nameof(GetPageComments)}/{{pageId:int}}")]
+        public async Task<IActionResult> GetPageComments([FromRoute] int pageId)
+        {
+            _logger.LogInformation("GetPageComments called with pageId ID: {pageId}", pageId);
+
+            var comments = await _context.Comments.Where(c => c.PageId == pageId).Include(c => c.Author)
+                .ToListAsync();
+            
+            _logger.LogInformation("Comments for page ID {pageId} found and returned", pageId);
+            return Ok(comments);
+        }
 
         [HttpPost("{articleId:int}")]
+        [Authorize]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateComment([FromRoute] int articleId, [FromBody] CommentDto commentDto)
@@ -53,17 +71,17 @@ namespace viki_01.Controllers
             var comment = new Comment
             {
                 PageId = articleId,
-                AuthorId = commentDto.AuthorId,
+                AuthorId = HttpContext.User.GetId(),
                 Text = commentDto.Text,
                 PostedAt = DateTime.Now,
                 EditedAt = DateTime.Now
             };
 
-            _context.Comments.Add(comment);
+            await _context.Comments.AddAsync(comment);
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Comment created successfully with ID: {id}", comment.Id);
-            return CreatedAtAction(nameof(GetComment), new { id = comment.Id }, comment);
+            return CreatedAtAction(nameof(GetComment), new { id = comment.Id }, await _context.Comments.Where(c => c.Id == comment.Id).Include(c => c.Author).FirstOrDefaultAsync());
         }
 
         [HttpPut("{id:int}")]

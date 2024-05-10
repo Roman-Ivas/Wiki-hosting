@@ -14,7 +14,8 @@ public class PageToPageDtoMapper : IMapper<Page, PageDto>
             AuthorId = original.AuthorId,
             WikiId = original.WikiId,
             RawHtml = original.RawHtml,
-            ProcessedHtml = original.ProcessedHtml
+            ProcessedHtml = original.ProcessedHtml,
+            UserRatings = original.UserRatings
         };
     }
 
@@ -26,7 +27,8 @@ public class PageToPageDtoMapper : IMapper<Page, PageDto>
             AuthorId = transformed.AuthorId,
             WikiId = transformed.WikiId,
             RawHtml = transformed.RawHtml,
-            ProcessedHtml = transformed.ProcessedHtml
+            ProcessedHtml = transformed.ProcessedHtml,
+            UserRatings = transformed.UserRatings.ToList()
         };
     }
 
@@ -37,5 +39,6 @@ public class PageToPageDtoMapper : IMapper<Page, PageDto>
         destination.WikiId = source.WikiId;
         destination.RawHtml = source.RawHtml;
         destination.ProcessedHtml = source.ProcessedHtml;
+        destination.UserRatings = source.UserRatings;
     }
 }    
