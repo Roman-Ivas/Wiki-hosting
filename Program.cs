@@ -107,6 +107,15 @@ builder.Services.AddSignalR().AddAzureSignalR(builder.Configuration.GetConnectio
 
 var app = builder.Build();
 
+app.UseCors(policyBuilder =>
+        {
+            policyBuilder.AllowAnyMethod()
+                .AllowAnyHeader()
+                .WithOrigins("https://localhost:4200", "http://localhost:4200", "https://icy-pebble-017b6c203.4.azurestaticapps.net")
+                .SetIsOriginAllowedToAllowWildcardSubdomains()
+                .AllowCredentials();
+        });
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
