@@ -408,6 +408,11 @@ namespace viki_01.Contexts
                     .HasDefaultValue(false)
                     .IsRequired();
 
+                entity.Property(template => template.ImagePath)
+                    .HasMaxLength(512)
+                    .HasDefaultValue("https://dummyimage.com/300x300/ccc/000000")
+                    .IsRequired();
+
                 entity.ToTable(nameof(Templates),
                     tableBuilder =>
                     {

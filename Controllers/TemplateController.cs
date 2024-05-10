@@ -75,7 +75,6 @@ namespace viki_01.Controllers
             var template = new Template
             {
                 Name = templateDto.Name,
-                ImagePath = templateDto.ImagePath,
                 AuthorId = authorId,
                 Html = templateDto.Html,
                 Css = templateDto.Css,
@@ -84,7 +83,7 @@ namespace viki_01.Controllers
                 IsPublic = templateDto.IsPublic
             };
 
-            context.Templates.Add(template);
+            await context.Templates.AddAsync(template);
             await context.SaveChangesAsync();
 
             logger.LogInformation("Template created successfully with ID: {id}", template.Id);
