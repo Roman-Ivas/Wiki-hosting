@@ -10,10 +10,9 @@ namespace viki_01.Models.Dto
         [Required]
         [StringLength(100)]
         public string Name { get; set; }
-
-        [Required]
+        
         [StringLength(450, MinimumLength = 1)]
-        public string ImagePath { get; set; } = null!;
+        public string? ImagePath { get; set; }
         
         [Required]
         public string Html { get; set; }
